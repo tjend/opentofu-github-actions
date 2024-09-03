@@ -1,0 +1,91 @@
+name: Apply
+
+on:
+  # note that the pull request comment event runs with the default branch
+  # any changes you make will be ignored when on the feature branch
+  # you will have to merge to main to see your changes
+  issue_comment: # pull request comment
+    types: [created]
+  pull_request_review: # pull request approved
+    types: [submitted]
+
+# limit to running one workflow job at at time for this repository
+# ensures consistency of the terraform state file
+concurrency:
+  group: ${{ github.repository }}
+  cancel-in-progress: false
+
+# environment variables set from repository secrets
+env:
+  TF_VAR_STATE_ENCRYPTION_PASSPHRASE: ${{ secrets.TF_VAR_STATE_ENCRYPTION_PASSPHRASE }}
+
+jobs:
+  apply:
+    name: Apply
+    permissions:
+      contents: write # allow git commits
+      pull-requests: write # allow pull request comments
+    runs-on: ubuntu-latest
+    if: github.event.review.state == 'approved' || (github.event.issue.pull_request && github.event.comment.body == 'approved')
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: checkout pull request branch (issue_comment event checks out the main branch)
+        if: github.event.issue.pull_request && github.event.comment.body == 'approved'
+        run: gh pr checkout ${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: copy .env
+        run: cp .env.example .env
+
+      - name: download plan tarball as artifact (created by plan workflow)
+        run: gh run download --name plan-${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: extract plan tarball containing `tfplan` file and `.terraform` directory (preserving execute permissions)
+        run: |
+          tar zxvf plan.tgz
+          touch src/tfplan # ensure tfplan has a recent timestamp (checked by apply)
+
+      - name: tofu apply
+        id: apply
+        run: |
+          # save apply output to an output variable (using HEREDOC to handle multiline output)
+          APPLY_OUTPUT=$(make tofu_apply)
+          echo "${APPLY_OUTPUT}"
+          echo 'APPLY<<EOF' >> $GITHUB_OUTPUT
+          echo "${APPLY_OUTPUT}" >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+      - name: commit `terraform.tfstate` file to git repo
+        id: commit
+        run: |
+          # setup git config as per https://ardislu.dev/proper-git-for-github-actions
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ./src/terraform.tfstate
+          git commit --message 'Update terraform state after running apply'
+          git push
+
+      - name: post pull request comment containing tofu apply output
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `
+              #### OpenTofu Apply 🛠️\`${{ steps.apply.outcome }}\`
+              #### State File Git Commit 🤖\`${{ steps.commit.outcome }}\`
+              \`\`\`
+              ${{ steps.apply.outputs.APPLY }}
+              \`\`\`
+              If you are happy with the apply, merge away!
+            `
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })

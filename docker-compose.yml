@@ -1,0 +1,15 @@
+services:
+  tofu:
+    environment:
+      TF_IN_AUTOMATION: true
+      # only used in local dev if variable defined
+      TF_PLUGIN_CACHE_DIR: ${TF_PLUGIN_CACHE_DIR}
+      TF_VAR_STATE_ENCRYPTION_PASSPHRASE: ${TF_VAR_STATE_ENCRYPTION_PASSPHRASE}
+    image: ghcr.io/opentofu/opentofu:1.8
+    volumes:
+      # mount tofu config under /src
+      - ./src:/src
+      # mount .terraform in home dir to cache providers (no equivalent option for modules)
+      # only used in local dev if variable defined
+      - ${TF_PLUGIN_CACHE_DIR:-/dev/null}:${TF_PLUGIN_CACHE_DIR:-/dev/null}
+    working_dir: /src

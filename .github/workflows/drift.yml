@@ -1,0 +1,36 @@
+name: Drift Detection
+
+on:
+  schedule:
+    - cron: 42 1 * * * # daily at 01:42 UTC
+  workflow_dispatch: # manually triggered using 'Run workflow' from the web interface
+
+# limit to running one workflow job at at time for this repository
+# ensures consistency of the terraform state file
+concurrency:
+  group: ${{ github.repository }}
+  cancel-in-progress: false
+
+# environment variables set from repository secrets
+env:
+  TF_VAR_STATE_ENCRYPTION_PASSPHRASE: ${{ secrets.TF_VAR_STATE_ENCRYPTION_PASSPHRASE }}
+
+jobs:
+  drift-detection:
+    name: Drift Detection
+    permissions:
+      contents: read # allow git checkouts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: copy .env
+        run: cp .env.example .env
+
+      - name: tofu init
+        run: make tofu_init
+
+      - name: tofu plan (changes throw an error)
+        run: make tofu_plan_drift

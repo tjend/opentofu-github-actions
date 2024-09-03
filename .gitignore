@@ -1,0 +1,4 @@
+/.env
+/src/.terraform/
+/src/terraform.tfstate.*
+/src/tfplan
