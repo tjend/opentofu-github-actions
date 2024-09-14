@@ -23,6 +23,7 @@ jobs:
   apply:
     name: Apply
     permissions:
+      actions: read # allow downloading artifacts
       contents: write # allow git commits
       pull-requests: write # allow pull request comments
     runs-on: ubuntu-latest
