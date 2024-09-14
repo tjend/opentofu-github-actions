@@ -90,7 +90,7 @@ Fork this repo so you have your own git repository and check it out locally.
 After git checkout:
 
 - copy `.env.example` to `.env`
-- set the value of `STATE_ENCRYPTION_PASSPHRASE` in `.env`
+- set the value of `TF_VAR_STATE_ENCRYPTION_PASSPHRASE` in `.env`
 
 Run `make` to show available commands (which are defined in `.env`):
 
