@@ -54,6 +54,7 @@ jobs:
 
       - name: tofu apply
         id: apply
+        continue-on-error: true
         run: |
           # save apply output to an output variable (using HEREDOC to handle multiline output)
           APPLY_OUTPUT=$(make tofu_apply)
@@ -64,6 +65,7 @@ jobs:
 
       - name: commit `terraform.tfstate` file to git repo
         id: commit
+        if: steps.apply.outcome == 'success'
         run: |
           # setup git config as per https://ardislu.dev/proper-git-for-github-actions
           git config user.name 'github-actions[bot]'
