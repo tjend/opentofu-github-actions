@@ -54,7 +54,7 @@ jobs:
           path: plan.tgz
 
       - name: post pull request comment containing tofu plan output
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const output = `
