@@ -1,0 +1,40 @@
+# Since the apply workflow only runs on approval or comments, it doesn't automatically
+# have a check created for it. We create a check to visualise whether apply
+# has been run.
+name: OpenTofu
+run-name: ${{ github.event.pull_request.title }} - Create Github Check for Apply
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  create-github-check-for-apply:
+    name: Create Github Check for Apply
+    permissions:
+      checks: write # allow creating checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: create github check for apply
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const result = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "Apply",
+              head_sha: process.env.GITHUB_HEAD_REF,
+              status: "queued",
+              output: {
+                title: "Waiting for approval to run the 'Apply' workflow...",
+                summary: "",
+              }
+            })
+            console.log(result)
+            if (result.status == 201) {
+              console.log("Successfully created github check: " + result.data.id)
+            } else {
+              core.setFailed("Error - non-201 response code received when creating github check")
+            }
+            return result
