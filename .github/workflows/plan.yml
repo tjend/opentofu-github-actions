@@ -1,4 +1,5 @@
-name: Plan
+name: OpenTofu
+run-name: ${{ github.event.pull_request.title }} - Plan
 
 on:
   pull_request:

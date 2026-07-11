@@ -1,4 +1,5 @@
-name: Drift Detection
+name: OpenTofu
+run-name: Drift Detection
 
 on:
   schedule:

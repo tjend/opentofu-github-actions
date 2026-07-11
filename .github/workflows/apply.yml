@@ -1,4 +1,5 @@
-name: Apply
+name: OpenTofu
+run-name: ${{ github.event.issue.title }} - Apply
 
 on:
   # note that the pull request comment event runs with the default branch
